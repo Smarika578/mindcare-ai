@@ -7,11 +7,15 @@ const MentalHealthChatbot = () => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const API_KEY = process.env.REACT_APP_OPENAI_API_KEY; // 🔒 Secure API Key
 
-  // 🎤 Speech-to-Text (Auto-send after recognition)
+  const API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+
+  // Speech to Text
   const handleVoiceClick = () => {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    const recognition = new (
+      window.SpeechRecognition || window.webkitSpeechRecognition
+    )();
+
     recognition.lang = "en-US";
     setIsListening(true);
     recognition.start();
@@ -20,13 +24,15 @@ const MentalHealthChatbot = () => {
       const transcript = event.results[0][0].transcript;
       setMessage(transcript);
       setIsListening(false);
-      sendMessage(transcript); // ✅ Auto-send after speech recognition
+      sendMessage(transcript);
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
   };
 
-  // 🔊 Text-to-Speech
+  // Text to Speech
   const handleTextToSpeech = (text) => {
     if (text) {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -35,63 +41,92 @@ const MentalHealthChatbot = () => {
     }
   };
 
-  // 📩 Send Message to AI Chatbot
+  // Send Message
   const sendMessage = async (msg = message) => {
     if (!msg.trim()) return;
-  
-    setMessage(""); // Clear input field
-    setChat((prevChat) => [...prevChat, { text: msg, sender: "user" }, { text: "Typing...", sender: "bot" }]);
-  
+
+    setMessage("");
+
+    setChat((prevChat) => [
+      ...prevChat,
+      { text: msg, sender: "user" },
+      { text: "Typing...", sender: "bot" },
+    ]);
+
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: msg }],
-        }),
-      });
-  
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: msg }],
+          }),
+        }
+      );
+
       const data = await response.json();
-  
+
       if (data.error) throw new Error(data.error.message);
-  
-      const botReply = data.choices?.[0]?.message?.content || "I'm here to listen. Tell me more.";
-  
-      setChat((prevChat) => [...prevChat.slice(0, -1), { text: botReply, sender: "bot" }]); // Replace "Typing..."
+
+      const botReply =
+        data.choices?.[0]?.message?.content ||
+        "I'm here to listen. Tell me more.";
+
+      setChat((prevChat) => [
+        ...prevChat.slice(0, -1),
+        { text: botReply, sender: "bot" },
+      ]);
+
       handleTextToSpeech(botReply);
     } catch (error) {
       console.error("Error fetching chatbot response:", error);
-      setChat((prevChat) => [...prevChat.slice(0, -1), { text: "Oops! Something went wrong.", sender: "bot" }]);
+
+      setChat((prevChat) => [
+        ...prevChat.slice(0, -1),
+        { text: "Oops! Something went wrong.", sender: "bot" },
+      ]);
     }
   };
-  
-  
+
   return (
     <div className="chat-container">
-      <h1 className="chat-header">AI Mental Health Chatbot</h1>
+      <h1 className="chat-header">MindCare Chatbot</h1>
 
       <div className="chat-window">
         {chat.map((msg, index) => (
-          <p key={index} className={msg.sender === "user" ? "user-message" : "bot-message"}>
+          <p
+            key={index}
+            className={
+              msg.sender === "user" ? "user-message" : "bot-message"
+            }
+          >
             {msg.text}
           </p>
         ))}
       </div>
 
-      {/* Quick Suggestions */}
       <div className="quick-suggestions">
-        {["I'm feeling stressed", "Give me motivation", "I feel anxious", "How to relax?"].map((text, index) => (
-          <button key={index} className="suggestion-button" onClick={() => sendMessage(text)}>
+        {[
+          "I'm feeling stressed",
+          "Give me motivation",
+          "I feel anxious",
+          "How to relax?",
+        ].map((text, index) => (
+          <button
+            key={index}
+            className="suggestion-button"
+            onClick={() => sendMessage(text)}
+          >
             {text}
           </button>
         ))}
       </div>
 
-      {/* Chat Input */}
       <div className="chat-input-container">
         <input
           type="text"
@@ -100,13 +135,21 @@ const MentalHealthChatbot = () => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage(message); // ✅ Send on Enter
+            if (e.key === "Enter") sendMessage(message);
           }}
         />
-        <button className={`voice-button ${isListening ? "listening" : ""}`} onClick={handleVoiceClick}>
+
+        <button
+          className={`voice-button ${isListening ? "listening" : ""}`}
+          onClick={handleVoiceClick}
+        >
           <FontAwesomeIcon icon={faMicrophone} size="lg" />
         </button>
-        <button className="send-button" onClick={() => sendMessage(message)}>
+
+        <button
+          className="send-button"
+          onClick={() => sendMessage(message)}
+        >
           <FontAwesomeIcon icon={faPaperPlane} size="lg" />
         </button>
       </div>
